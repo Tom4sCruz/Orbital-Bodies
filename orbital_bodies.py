@@ -19,8 +19,8 @@ TRACER_RADIUS = 1
 
 BLINK_INTERVAL = 30
 
-BACKGROUND = (0, 0, 65) # Dark Blue
-PLANET_COLOR = (255, 153, 51) # Orange
+BACKGROUND = (0, 0, 35) # Dark Blue
+PLANET_COLOR = (173, 142, 111) # (Jupyter) Beige
 
 # REDS
 
