@@ -6,8 +6,8 @@ from pygame.locals import *
 pygame.init()
 
 # Constants
-WIDTH, LENGTH = 1600, 700
-G = 1
+WIDTH, LENGTH = 1600, 900
+G = 0.6
 FPS = 60
 
 PLANET_POS = (WIDTH // 2, LENGTH // 2)
@@ -15,8 +15,11 @@ PLANET_RADIUS = 50
 PLANET_MASS = 5000
 
 PARTICLE_RADIUS = 5
+TRACER_RADIUS = 1
 
-BACKGROUND = (0, 0, 65)
+BLINK_INTERVAL = 30
+
+BACKGROUND = (0, 0, 65) # Dark Blue
 PLANET_COLOR = (255, 153, 51) # Orange
 
 # REDS
@@ -60,9 +63,9 @@ YELLOW_GLOW = (60,50,0)
 YELLOWS = [ON_YELLOW, OFF_YELLOW, YELLOW_GLOW]
 
 
-COLORS = [REDS, BLUES, GREENS, PINKS, YELLOWS]
+# COLORS
 
-#COLORS = [(200,0,0), (0,183,235), (0,200,0), (255,105,180), (255,215,0)]
+COLORS = [REDS, BLUES, GREENS, PINKS, YELLOWS]
 
 screen = pygame.display.set_mode((WIDTH, LENGTH))
 pygame.display.set_caption("Orbital bodies")
@@ -77,12 +80,26 @@ class Body:
         self.mass = 1
         self.colors = colors
         self.glow = False
-        
+        self.time = 0
+        self.collided = False
+        self.tracer = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+
+    def hasCollided(self):
+        dist = math.sqrt((self.x-PLANET_POS[0])**2 + (self.y-PLANET_POS[1])**2)
+
+        if dist <= PLANET_RADIUS:
+            self.collided = True
+
+    def update_tracers(self):
+        screen.blit(self.tracer, (0,0))
+        self.draw(self.tracer, self.colors[1], True)
+    
     def update_pos(self):
         if not self.dragging:
             self.apply_gravity()
             self.x += self.vx
             self.y += self.vy
+            self.hasCollided()
 
     def apply_gravity(self):
         dx = PLANET_POS[0] - self.x
@@ -97,21 +114,28 @@ class Body:
     def circle_surf(self, r, color):
         surf = pygame.Surface((r*2, r*2))
         pygame.draw.circle(surf, color, (r, r), r)
-        surf.set_colorkey((0,0,0))
+        surf.set_colorkey(BACKGROUND)
         return surf
     
     def blink(self):
         self.glow = False if self.glow else True
 
-    def glowing(self):
+    def glowing(self):  
+        self.update_tracers()
+
         if self.glow:
-            self.draw(self.colors[0])
+            self.draw(screen, self.colors[0], False)
             screen.blit(self.circle_surf(PARTICLE_RADIUS*2, self.colors[2]), (self.x - PARTICLE_RADIUS*2, self.y - PARTICLE_RADIUS*2), special_flags=BLEND_RGB_ADD)
         else:
-            self.draw(self.colors[1])
+            self.draw(screen, self.colors[1], False)
 
-    def draw(self, color):
-        pygame.draw.circle(screen, color, (self.x, self.y), PARTICLE_RADIUS)
+        if self.time >= BLINK_INTERVAL:
+            self.blink()
+            self.time = 0
+        self.time += 1
+
+    def draw(self, ground, color, tracer):
+        pygame.draw.circle(ground, color, (self.x, self.y), TRACER_RADIUS if tracer else PARTICLE_RADIUS)
     
 
 bodies = []
@@ -127,9 +151,9 @@ while running:
     pygame.draw.circle(screen, PLANET_COLOR, PLANET_POS, PLANET_RADIUS)
     
     for b in bodies:
-        b.update_pos()
-        b.glowing()
-
+        if not b.collided:
+            b.update_pos()
+            b.glowing()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -142,8 +166,11 @@ while running:
             if len(bodies) == 5:
                 aux_colors = bodies.pop(0).colors
             else:
+                if i > 4:
+                    i = 0
                 aux_colors = COLORS[i]
                 i += 1
+                
             start_pos = pygame.mouse.get_pos()
             body = Body(start_pos[0], start_pos[1], aux_colors)
             bodies.append(body)
@@ -159,10 +186,6 @@ while running:
             if event.key == pygame.K_r:
                 i = 0
                 bodies.clear()
-            elif event.key == pygame.K_g:
-                for b in bodies:
-                    b.blink()
-
     
     pygame.display.flip() # Redraws everything on screen
     clock.tick(FPS)
