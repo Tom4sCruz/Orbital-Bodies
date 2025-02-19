@@ -1,5 +1,5 @@
 # Orbital-Bodies
 
-<div align="center">
-![GIF showing this script runnign](media/orbital_bodies_animated.gif)
-</div>
+A simple orbital simulator using Newtonian Physics.
+
+![GIF showing this script running](media/orbital_bodies_animated.gif)
